@@ -334,7 +334,7 @@ public class CoberturaPublisher extends Recorder {
             return true;
         }
 
-        if (externalBuild != null) {
+        if (externalBuild != null && !externalBuild.isEmpty()) {
             listener.getLogger().println("External build set: " + externalBuild + ". Using its set metrics");
             AbstractProject job = (AbstractProject) Jenkins.getInstance().getItem(externalBuild);
             CoberturaPublisher plug = (CoberturaPublisher) job.getPublishersList().get(this.getClass());
