@@ -7,12 +7,7 @@ import hudson.Util;
 import hudson.maven.ExecutedMojo;
 import hudson.maven.MavenBuild;
 import hudson.maven.MavenModuleSetBuild;
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractItem;
-import hudson.model.AbstractProject;
+import hudson.model.*;
 import hudson.plugins.cobertura.renderers.SourceCodePainter;
 import hudson.plugins.cobertura.renderers.SourceEncoding;
 import hudson.plugins.cobertura.targets.CoverageMetric;
@@ -41,6 +36,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.beanutils.ConvertUtils;
@@ -78,6 +74,8 @@ public class CoberturaPublisher extends Recorder {
 
     private CoverageTarget failingTarget;
 
+    private final String externalBuild;
+
     public static final CoberturaReportFilenameFilter COBERTURA_FILENAME_FILTER = new CoberturaReportFilenameFilter();
 
     private final SourceEncoding sourceEncoding;
@@ -89,7 +87,7 @@ public class CoberturaPublisher extends Recorder {
     @DataBoundConstructor
     public CoberturaPublisher(String coberturaReportFile, boolean onlyStable, boolean failUnhealthy, boolean failUnstable, 
             boolean autoUpdateHealth, boolean autoUpdateStability, boolean zoomCoverageChart, boolean failNoReports, SourceEncoding sourceEncoding,
-            int maxNumberOfBuilds) {
+            int maxNumberOfBuilds, String externalBuild) {
         this.coberturaReportFile = coberturaReportFile;
         this.onlyStable = onlyStable;
         this.failUnhealthy = failUnhealthy;
@@ -103,6 +101,7 @@ public class CoberturaPublisher extends Recorder {
         this.healthyTarget = new CoverageTarget();
         this.unhealthyTarget = new CoverageTarget();
         this.failingTarget = new CoverageTarget();
+        this.externalBuild = externalBuild;
     }
 
     /**
@@ -224,6 +223,9 @@ public class CoberturaPublisher extends Recorder {
         return failUnstable;
     }
 
+    public String getExternalBuild() {
+        return externalBuild;
+    }
     /**
      * Getter for property 'autoUpdateHealth'.
      *
@@ -330,6 +332,17 @@ public class CoberturaPublisher extends Recorder {
         if (build.getResult().isWorseThan(threshold)) {
             listener.getLogger().println("Skipping Cobertura coverage report as build was not " + threshold.toString() + " or better ...");
             return true;
+        }
+
+        if (externalBuild != null) {
+            listener.getLogger().println("External build set: " + externalBuild + ". Using its set metrics");
+            AbstractProject job = (AbstractProject) Jenkins.getInstance().getItem(externalBuild);
+            CoberturaPublisher plug = (CoberturaPublisher) job.getPublishersList().get(this.getClass());
+            if (plug == null){
+                listener.getLogger().println(externalBuild + " does not have Cobertura plugin");
+                throw new IllegalArgumentException();
+            }
+            setTargets(plug.getTargets());
         }
 
         listener.getLogger().println("[Cobertura] Publishing Cobertura coverage report...");

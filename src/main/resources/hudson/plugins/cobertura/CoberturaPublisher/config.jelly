@@ -5,6 +5,9 @@
         <f:textbox name="cobertura.coberturaReportFile" value="${instance.coberturaReportFile}"/>
     </f:entry>
     <f:advanced>
+        <f:entry title="Test against another build">
+            <f:textbox name="cobertura.externalBuild" value="${instance.externalBuild}"/>
+        </f:entry>
         <f:entry title="${%Consider only stable builds}"
              description="${%only.stable.builds.description}" >
             <f:checkbox name="cobertura.onlyStable" checked="${instance.onlyStable}" />                                                                                        
